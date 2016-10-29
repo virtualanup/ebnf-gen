@@ -6,7 +6,8 @@ Usage :
 $ python3 ebnfgen.py grammar
 ```
 
-    Sample grammar is
+Sample grammar is
+
     program -> stmt_list $$
     stmt_list -> stmt stmt_list | epsilon
     stmt -> id := expr | read id | write expr
