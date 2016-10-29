@@ -148,11 +148,10 @@ class GrammarParser:
             for prod in self.productions[nt]:
                 print("{} -> {}\t: {} ".format(nt, " ".join(prod), ",".join(self.predict[(nt, tuple(prod))])))
 
-    def first_set(self):
-        return self.first
+    def print_eps(self):
+        eps_list = [symbol for symbol, iseps in self.eps.items() if iseps]
+        print("Epsilon Productions : ", ",".join(eps_list))
 
-    def follow_set(self):
-        return []
 
 
 if __name__ == "__main__":
@@ -169,3 +168,6 @@ if __name__ == "__main__":
 
         print("\nPredict Set\n")
         ebnf.print_predict_set()
+
+        print()
+        ebnf.print_eps()
