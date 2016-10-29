@@ -4,7 +4,7 @@ from collections import defaultdict
 
 
 class GrammarParser:
-    epsilon = 'epsilon'
+    epsilon = 'EPSILON'
 
     def __init__(self, grammar):
         self.nt = set()
@@ -14,6 +14,7 @@ class GrammarParser:
 
         self.first = defaultdict(set)
         self.follow = defaultdict(set)
+        self.predict = defaultdict(set)
 
         self.symbols = set()
         self.eps = defaultdict(lambda: False)
@@ -51,6 +52,7 @@ class GrammarParser:
         for terminal in self.terminals:
             self.first[terminal].add(terminal)
 
+
         # Calculate the first set
         changed = True
         while changed:
@@ -59,10 +61,10 @@ class GrammarParser:
                 for prod in self.productions[nt]:
                     found = False
                     for symbol in prod:
+                        if len(self.first[symbol] - self.first[nt]) > 0:
+                            changed = True
+                            self.first[nt] |= (self.first[symbol] - set(self.epsilon))
                         if self.epsilon not in self.first[symbol]:
-                            if len(self.first[symbol] - self.first[nt]) > 0:
-                                changed = True
-                                self.first[nt] |= self.first[symbol]
                             break
                     else:
                         if self.epsilon not in self.first[nt]:
@@ -70,7 +72,8 @@ class GrammarParser:
                             changed = True
 
         # Calculate the follow set
-        # The start_symbols represent the non terminals that don't appear in rhs
+        # The start_symbols represent the non terminals that don't appear in
+        # rhs
         if not self.start_symbols:
             self.start_symbols.add(self.nt_order[0])
 
@@ -88,7 +91,8 @@ class GrammarParser:
                     for symbol1, symbol2 in zip(prod, prod[1:]):
                         # The first symbol must be non-terminal
                         if symbol1 in self.nt:
-                            first_sym2 = self.first[symbol2] - set([self.epsilon])
+                            first_sym2 = self.first[
+                                symbol2] - set([self.epsilon])
                             if len(first_sym2 - self.follow[symbol1]) > 0:
                                 changed = True
                                 self.follow[symbol1] |= first_sym2
@@ -105,18 +109,44 @@ class GrammarParser:
                             if len(self.follow[nt] - self.follow[second_last]) > 0:
                                 changed = True
                                 self.follow[second_last] |= self.follow[nt]
+        # Calculate the predict set
+        for nt in self.nt:
+            for prod in self.productions[nt]:
+                # We use tuple of nt and the production as a tuple(immutable) as the key
+                key = (nt, tuple(prod))
+                self.predict[key] |= self.first[prod[0]]
+                is_eps = all([self.eps[x] if x in self.nt else False for x in prod ])
+                # print(nt," ", prod, end="")
+                if is_eps or (len(prod) == 1 and prod[0] == self.epsilon):
+                    self.predict[key] |= self.follow[nt]
+                # No epsilon in predict set
+                self.predict[key].discard(self.epsilon)
+
+    def is_eps(self, symbol):
+        if symbol not in self.nt:
+            return False
+        return self.eps[symbol]
+
+
 
     def _print_set(self, pset):
         # This is just some dirty hack to print the non terminals before terminals and in the same
-        # order that they appeared
-        for symbol, f_set in sorted(pset.items(), key=lambda x:self.nt_order.index(x[0]) if x[0] in self.nt_order else len(self.nt_order)+1):
-            print("{}\t:\t{}".format(symbol, ', '.join(sorted(f_set))))
+        # order that they appeared. Also, don't print set of epsilon
+        for symbol, f_set in filter(lambda x:x[0] != self.epsilon, sorted(pset.items(),
+                                    key=lambda x: self.nt_order.index(x[0]) if
+                                    x[0] in self.nt_order else len(self.nt_order) + 1)):
+            print("{}\t:\t{}".format(symbol, ', '.join(sorted(filter(lambda x: x in self.symbols,f_set)))))
 
     def print_first_set(self):
         self._print_set(self.first)
 
     def print_follow_set(self):
         self._print_set(self.follow)
+
+    def print_predict_set(self):
+        for nt in sorted(self.nt, key=lambda x: self.nt_order.index(x)):
+            for prod in self.productions[nt]:
+                print("{} -> {}\t: {} ".format(nt, " ".join(prod), ",".join(self.predict[(nt, tuple(prod))])))
 
     def first_set(self):
         return self.first
@@ -136,3 +166,6 @@ if __name__ == "__main__":
 
         print("\n Follow set\n")
         ebnf.print_follow_set()
+
+        print("\nPredict Set\n")
+        ebnf.print_predict_set()
