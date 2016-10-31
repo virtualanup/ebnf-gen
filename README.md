@@ -17,7 +17,7 @@ Sample grammar is
     factor_tail -> mult_op factor factor_tail | epsilon
     factor -> ( expr ) | id | number
     add_op -> + | -
-    mult_op -> *|/
+    mult_op -> * | /
 
 Copyright (c) 2016 Anup Pokhrel
 

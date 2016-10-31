@@ -22,6 +22,7 @@ class GrammarParser:
 
         grammar = grammar.replace("→", "->")
         grammar = grammar.replace("ε", self.epsilon)
+        grammar = grammar.replace("epsilon", self.epsilon)
 
         for production in filter(lambda x: "->" in x, grammar.split("\n")):
             nt, rhs = production.split("->")
@@ -52,7 +53,6 @@ class GrammarParser:
         for terminal in self.terminals:
             self.first[terminal].add(terminal)
 
-
         # Calculate the first set
         changed = True
         while changed:
@@ -63,7 +63,8 @@ class GrammarParser:
                     for symbol in prod:
                         if len(self.first[symbol] - self.first[nt]) > 0:
                             changed = True
-                            self.first[nt] |= (self.first[symbol] - set(self.epsilon))
+                            self.first[nt] |= (
+                                self.first[symbol] - set(self.epsilon))
                         if self.epsilon not in self.first[symbol]:
                             break
                     else:
@@ -112,10 +113,12 @@ class GrammarParser:
         # Calculate the predict set
         for nt in self.nt:
             for prod in self.productions[nt]:
-                # We use tuple of nt and the production as a tuple(immutable) as the key
+                # We use tuple of nt and the production as a tuple(immutable)
+                # as the key
                 key = (nt, tuple(prod))
                 self.predict[key] |= self.first[prod[0]]
-                is_eps = all([self.eps[x] if x in self.nt else False for x in prod ])
+                is_eps = all(
+                    [self.eps[x] if x in self.nt else False for x in prod])
                 # print(nt," ", prod, end="")
                 if is_eps or (len(prod) == 1 and prod[0] == self.epsilon):
                     self.predict[key] |= self.follow[nt]
@@ -127,15 +130,14 @@ class GrammarParser:
             return False
         return self.eps[symbol]
 
-
-
     def _print_set(self, pset):
         # This is just some dirty hack to print the non terminals before terminals and in the same
         # order that they appeared. Also, don't print set of epsilon
-        for symbol, f_set in filter(lambda x:x[0] != self.epsilon, sorted(pset.items(),
-                                    key=lambda x: self.nt_order.index(x[0]) if
-                                    x[0] in self.nt_order else len(self.nt_order) + 1)):
-            print("{}\t:\t{}".format(symbol, ', '.join(sorted(filter(lambda x: x in self.symbols,f_set)))))
+        for symbol, f_set in filter(lambda x: x[0] != self.epsilon, sorted(pset.items(),
+                                                                           key=lambda x: self.nt_order.index(x[0]) if
+                                                                           x[0] in self.nt_order else len(self.nt_order) + 1)):
+            print("{}\t:\t{}".format(symbol, ', '.join(
+                sorted(filter(lambda x: x in self.symbols, f_set)))))
 
     def print_first_set(self):
         self._print_set(self.first)
@@ -146,12 +148,12 @@ class GrammarParser:
     def print_predict_set(self):
         for nt in sorted(self.nt, key=lambda x: self.nt_order.index(x)):
             for prod in self.productions[nt]:
-                print("{} -> {}\t: {} ".format(nt, " ".join(prod), ",".join(self.predict[(nt, tuple(prod))])))
+                print("{} -> {}\t: {} ".format(nt, " ".join(prod),
+                                               ",".join(self.predict[(nt, tuple(prod))])))
 
     def print_eps(self):
         eps_list = [symbol for symbol, iseps in self.eps.items() if iseps]
         print("Epsilon Productions : ", ",".join(eps_list))
-
 
 
 if __name__ == "__main__":
